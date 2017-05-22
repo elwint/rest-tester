@@ -62,6 +62,8 @@ def login():
 		abort(400)
 
 	user = session.query(model.User).filter(model.User.name.ilike(username)).first()
+	if user == None:
+		abort(400)
 	if not crypt.check(password, user.password):
 		abort(403)
 
@@ -80,7 +82,7 @@ def get_user_by_id(user_id):
 @app.route("/tests/<int:test_id>")
 def get_test_by_id(test_id):
 	test = session.query(model.Test).get(test_id, user_id=g.user_id)
-	if test is None:
+	if test == None:
 		abort(404)
 	return json.dumps({'id': test.id, 'name': test.name, 'last_ok': test.last_ok, 'data': test.data})
 
