@@ -36,6 +36,11 @@ def check_token():
 
 	g.user_id = auth.user_id
 
+	if request.method in ['POST', 'PUT']:
+		g.input_data = request.get_json()
+		if g.input_data == None:
+			g.input_data = {}
+
 @app.errorhandler(500)
 def internal_server_error(error):
 	return '"Internal server error"', 500
@@ -57,11 +62,10 @@ TOKEN_CHARS = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 @app.route("/login", methods=["POST"])
 def login():
-	input_data = request.get_json();
-	username = input_data['user']
+	username = g.input_data['user']
 	if username == None or username == '':
 		abort(400)
-	password = input_data['pass']
+	password = g.input_data['pass']
 	if password == None or password == '':
 		abort(400)
 
@@ -76,37 +80,55 @@ def login():
 
 	return json.dumps(token)
 
-@app.route("/users/<int:user_id>")
+@app.route("/users/<int:user_id>", methods=['GET'])
 def get_user_by_id(user_id):
 	user = session.query(model.User).get(user_id)
 	if user == None:
 		abort(404)
-	return json.dumps({'id': user.id, 'name': user.name})
+	return json.dumps({"id": user.id, "name": user.name})
 
-@app.route("/tests/<int:test_id>")
+@app.route("/tests/<int:test_id>", methods=['GET'])
 def get_test_by_id(test_id):
-	test = session.query(model.Test).get(test_id, user_id=g.user_id)
+	test = session.query(model.Test).filter_by(id=test_id, user_id=g.user_id).first()
 	if test == None:
 		abort(404)
-	return json.dumps({'id': test.id, 'name': test.name, 'last_ok': test.last_ok, 'data': test.data})
+	return json.dumps({"id": test.id, "name": test.name, "last_ok": test.last_ok, "data": test.data})
 
-@app.route("/tests/mine")
+@app.route("/tests/mine", methods=['GET'])
 def get_my_tests():
-	print(g.user_id)
 	tests = session.query(model.Test).filter_by(user_id=g.user_id).all()
 
 	out = []
 
 	for test in tests:
-		out.append({"id": test.id, "name": test.name, 'last_ok': test.last_ok, 'data': test.data})
+		out.append({"id": test.id, "name": test.name, "last_ok": test.last_ok, "data": test.data})
 	return json.dumps(out)
 
-@app.route("/tests", methods=['PUT'])
+@app.route("/tests", methods=['POST'])
 def add_test():
-	if not 'name' in request.form or not 'data' in request.form:
+	if not 'name' in g.input_data or not 'data' in g.input_data:
 		abort(400)
 
-	session.add(model.Test(user_id=g.user_id, name=request.form.get('name'), data=request.form.get('data')))
+	test = model.Test(user_id=g.user_id, name=g.input_data['name'], data=g.input_data['data'])
+	session.add(test)
+	session.flush()
+	return json.dumps({"id": test.id}), 201
+
+@app.route("/tests/<int:test_id>", methods=['PUT'])
+def update_test(test_id):
+	if not 'name' in g.input_data or not 'data' in g.input_data:
+		abort(400)
+
+	count = session.query(model.Test).filter_by(user_id=g.user_id, id=test_id).update({"name": g.input_data['name'], "data": g.input_data['data']})
+	if count == 0:
+		abort(403)
+	return json.dumps({"status": "ok"})
+
+@app.route("/tests/<int:test_id>", methods=['DELETE'])
+def delete_test(test_id):
+	count = session.query(model.Test).filter_by(user_id=g.user_id, id=test_id).delete()
+	if count == 0:
+		abort(403)
 	return json.dumps({"status": "ok"})
 
 app.run()
