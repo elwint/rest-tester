@@ -16,6 +16,9 @@ app.config['PROPAGATE_EXCEPTIONS']=True
 @app.after_request
 def set_header(response):
 	response.headers["Content-Type"] = "application/json"
+	response.headers["Access-Control-Allow-Origin"] = "*"
+	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PUT, DELETE"
+	response.headers["Access-Control-Allow-Headers"] = "Token, Content-Type"
 	return response
 
 @app.before_request
@@ -54,16 +57,17 @@ TOKEN_CHARS = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 @app.route("/login", methods=["POST"])
 def login():
-	username = request.form.get('user')
+	input_data = request.get_json();
+	username = input_data['user']
 	if username == None or username == '':
 		abort(400)
-	password = request.form.get('pass')
+	password = input_data['pass']
 	if password == None or password == '':
 		abort(400)
 
 	user = session.query(model.User).filter(model.User.name.ilike(username)).first()
 	if user == None:
-		abort(400)
+		abort(404)
 	if not crypt.check(password, user.password):
 		abort(403)
 
