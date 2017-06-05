@@ -48,7 +48,7 @@ class Login extends React.Component {
 		}).then((response) => {
 			switch (response.status) {
 				case 200:
-					this.refs.user.className=""
+					this.refs.user.className="";
 					return response.json();
 				case 403:
 					this.refs.pass.className="wrong";
@@ -61,7 +61,8 @@ class Login extends React.Component {
 			}
 		}).then((body) => {
 			this.setError();
-			token = body
+			token = body;
+            this.setState(this.state);
 		}).catch((err) => {
 			let msg = err.message;
 			if (err instanceof TypeError) {
@@ -77,16 +78,46 @@ class Login extends React.Component {
 	}
 
 	render() {
-		return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
-			React.createElement('h1', null, 'Login'),
-			React.createElement(Errors, {ref: "errors", class: 'hidden'}),
-			React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
-			React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
-			React.createElement('div', {className: "right"}, 
-				React.createElement('input', {type: "submit", value: "Login"})
-			)
-		);
+        if(!token) {
+            return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
+                React.createElement('h1', null, 'Login'),
+                React.createElement(Errors, {ref: "errors", class: 'hidden'}),
+                React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
+                React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
+                React.createElement('div', {className: "right"}, 
+                    React.createElement('input', {type: "submit", value: "Login"})
+                )
+            );
+        } else {
+            return React.createElement(Tests);
+        }
 	}
+}
+
+class Tests extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+    
+    componentDidMount() {
+        fetch('http://localhost:5000/tests/mine', {
+			method: 'GET',
+            headers: {
+				'Content-Type': 'application/json',
+				'Token': token
+            }
+        }).then(function (response) {
+            console.log(response);
+        })
+    }
+  
+    render() {
+        return (
+			React.createElement('div', null, 
+                React.createElement('h1', null, 'Tests')
+            )
+        );
+    }
 }
 
 ReactDOM.render(React.createElement(Login, null), document.getElementById("page"));
