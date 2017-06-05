@@ -23,6 +23,8 @@ def set_header(response):
 
 @app.before_request
 def check_token():
+	if request.method == "OPTIONS":
+		return ""
 	if request.path == "/login":
 		return None
 	token = request.headers.get("Token")
