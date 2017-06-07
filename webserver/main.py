@@ -88,10 +88,8 @@ def get_user_by_id(user_id):
 
 @app.route("/tests/<int:test_id>", methods=['GET'])
 def get_test_by_id(test_id):
-	test = session.query(model.Test).filter(data["id"]==test_id, data["user_id"]==g.user_id).first()
-	if test == None:
-		abort(404)
-	return json.dumps(test)
+	test = check_test_access(test_id, False)
+	return json.dumps(test.data)
 
 @app.route("/tests/mine", methods=['GET'])
 def get_my_tests():
@@ -105,12 +103,16 @@ def get_my_tests():
 @app.route("/tests", methods=['POST'])
 def add_test():
 	input_data = request.get_json()
-	if not 'name' in input_data or not 'autorun_time' in input_data or not 'data' in input_data:
+	if 'name' not in input_data or 'autorun_time' not in input_data or 'data' not in input_data:
 		abort(400)
 
-	id = 1111 # TODO: Generate id
+	last_test = session.query(model.Test).order_by(model.Test.data["id"].astext.desc()).first()
+	if last_test == None:
+		test_id = 0
+	else:
+		test_id = last_test.data['id'] + 1
 	test = model.Test(data={
-		"id": id,
+		"id": test_id,
 		"user_id": g.user_id,
 		"name": input_data['name'],
 		"last": {
@@ -119,33 +121,57 @@ def add_test():
 		},
 		"shared_with": [],
 		"autorun_time": input_data['autorun_time'],
-		"group": None,
+		"group": input_data.get('group', None), # Optional
 		"data": input_data['data']
 	})
 	session.add(test)
-	return json.dumps({"id": id}), 201
+	return json.dumps({"id": test_id}), 201
 
-# TODO: PUT en DELETE
 @app.route("/tests/<int:test_id>", methods=['PUT'])
 def update_test(test_id):
 	input_data = request.get_json()
-	if not 'name' in input_data or not 'autorun_time' in input_data or not 'data' in input_data:
-		abort(400)
+	test = check_test_access(test_id, True)
 
-	count = session.query(model.Test).filter(model.Test.data["user_id"].astext.cast(Integer)==g.user_id, model.Test.data["id"].astext.cast(Integer)==test_id).update(data={
-		"name": input_data['name'],
-		"autorun_time": input_data['autorun_time'],
-		"data": input_data['data']
-	})
+	count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer)==test_id).update({"data": {
+		"id": test_id,
+		"user_id": g.user_id,
+		"name": input_data.get('name', test.data['name']),
+		"last": test.data['last'],
+		"shared_with": input_data.get('shared_with', test.data['shared_with']),
+		"autorun_time": input_data.get('autorun_time', test.data['autorun_time']),
+		"group": input_data.get('group', test.data['group']),
+		"data": input_data.get('data', test.data['data']),
+	}}, synchronize_session=False)
 	if count == 0:
-		abort(403)
+		abort(500)
 	return json.dumps({"status": "ok"})
 
 @app.route("/tests/<int:test_id>", methods=['DELETE'])
 def delete_test(test_id):
-	count = session.query(model.Test).filter(model.Test.data["user_id"].astext.cast(Integer)==g.user_id, model.Test.data["id"].astext.cast(Integer)==test_id).delete()
+	check_test_access(test_id, True)
+	count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer)==test_id).delete(synchronize_session=False)
 	if count == 0:
-		abort(403)
+		abort(500)
 	return json.dumps({"status": "ok"})
+
+@app.route("/tests/<int:test_id>/history", methods=['GET'])
+def get_test_history_by_id(test_id):
+	check_test_access(test_id, False)
+	history = session.query(model.History).filter(model.History.data["test_id"].astext.cast(Integer) == test_id).all()
+
+	out = []
+	for h in history:
+		out.append({"ok": h.data['ok'], "time": h.data['time']})
+	return json.dumps(out)
+
+def check_test_access(test_id, owner_only=False):
+	test = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer)==test_id).first()
+	if test == None:
+		abort(404)
+	if test.data['user_id'] == g.user_id:
+		return test
+	if not owner_only and g.user_id in test.data['shared_with']:
+		return test
+	abort(403)
 
 app.run()

@@ -14,14 +14,14 @@ session.add(model.Test(data={
 		"ok": None,
 		"time": None
 	},
-	"shared_with": [1],
+	"shared_with": [],
 	"autorun_time": -1,
 	"group": None,
 	"data": {}
 }))
 session.add(model.Test(data={
-	"id": 0,
-	"user_id": 1,
+	"id": 1,
+	"user_id": 0,
 	"name": "Test 2",
 	"last": {
 		"ok": None,
@@ -36,5 +36,10 @@ session.add(model.History(data={
 	"test_id": 0,
 	"ok": False,
 	"time": 1496836917
+}))
+session.add(model.History(data={
+	"test_id": 0,
+	"ok": True,
+	"time": 1496836918
 }))
 session.flush()

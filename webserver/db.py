@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from model import Base
 
-engine = create_engine('postgres://postgres@localhost/test')
+engine = create_engine('postgres://postgres@localhost/test', echo=False)
 Base.metadata.create_all(engine)
 
 session = sessionmaker(bind=engine)()

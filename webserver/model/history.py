@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, JSON
+from sqlalchemy import Column, Integer
+from sqlalchemy.dialects.postgresql import JSON
 from .base import Base
 
 class History(Base):
