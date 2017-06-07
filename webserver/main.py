@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 from flask import Flask, abort, request, g
+from sqlalchemy import Integer
 import json
 import string
 import random
@@ -87,46 +88,62 @@ def get_user_by_id(user_id):
 
 @app.route("/tests/<int:test_id>", methods=['GET'])
 def get_test_by_id(test_id):
-	test = session.query(model.Test).filter_by(id=test_id, user_id=g.user_id).first()
+	test = session.query(model.Test).filter(data["id"]==test_id, data["user_id"]==g.user_id).first()
 	if test == None:
 		abort(404)
-	return json.dumps({"id": test.id, "name": test.name, "last_ok": test.last_ok, "data": test.data})
+	return json.dumps(test)
 
 @app.route("/tests/mine", methods=['GET'])
 def get_my_tests():
-	tests = session.query(model.Test).filter_by(user_id=g.user_id).all()
+	tests = session.query(model.Test).filter(model.Test.data["user_id"].astext.cast(Integer) == g.user_id).all()
 
 	out = []
-
 	for test in tests:
-		out.append({"id": test.id, "name": test.name, "last_ok": test.last_ok, "data": test.data})
+		out.append(test.data)
 	return json.dumps(out)
 
 @app.route("/tests", methods=['POST'])
 def add_test():
 	input_data = request.get_json()
-	if not 'name' in input_data or not 'data' in input_data:
+	if not 'name' in input_data or not 'autorun_time' in input_data or not 'data' in input_data:
 		abort(400)
 
-	test = model.Test(user_id=g.user_id, name=input_data['name'], data=input_data['data'])
+	id = 1111 # TODO: Generate id
+	test = model.Test(data={
+		"id": id,
+		"user_id": g.user_id,
+		"name": input_data['name'],
+		"last": {
+			"ok": None,
+			"time": None
+		},
+		"shared_with": [],
+		"autorun_time": input_data['autorun_time'],
+		"group": None,
+		"data": input_data['data']
+	})
 	session.add(test)
-	session.flush()
-	return json.dumps({"id": test.id}), 201
+	return json.dumps({"id": id}), 201
 
+# TODO: PUT en DELETE
 @app.route("/tests/<int:test_id>", methods=['PUT'])
 def update_test(test_id):
 	input_data = request.get_json()
-	if not 'name' in input_data or not 'data' in input_data:
+	if not 'name' in input_data or not 'autorun_time' in input_data or not 'data' in input_data:
 		abort(400)
 
-	count = session.query(model.Test).filter_by(user_id=g.user_id, id=test_id).update({"name": input_data['name'], "data": input_data['data']})
+	count = session.query(model.Test).filter(model.Test.data["user_id"].astext.cast(Integer)==g.user_id, model.Test.data["id"].astext.cast(Integer)==test_id).update(data={
+		"name": input_data['name'],
+		"autorun_time": input_data['autorun_time'],
+		"data": input_data['data']
+	})
 	if count == 0:
 		abort(403)
 	return json.dumps({"status": "ok"})
 
 @app.route("/tests/<int:test_id>", methods=['DELETE'])
 def delete_test(test_id):
-	count = session.query(model.Test).filter_by(user_id=g.user_id, id=test_id).delete()
+	count = session.query(model.Test).filter(model.Test.data["user_id"].astext.cast(Integer)==g.user_id, model.Test.data["id"].astext.cast(Integer)==test_id).delete()
 	if count == 0:
 		abort(403)
 	return json.dumps({"status": "ok"})
