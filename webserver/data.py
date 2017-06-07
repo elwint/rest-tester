@@ -7,12 +7,13 @@ session.add(model.User(name='Tester', password=crypt.hash('def')))
 session.add(model.Token(user_id=1, token="test"))
 
 session.add(model.Test(data={
-	"id": 0,
+	"id": 1,
 	"user_id": 1,
 	"name": "Test 1",
 	"last": {
-		"ok": None,
-		"time": None
+		"ok": True,
+		"elapsed_time": 16,
+		"timestamp": 1496836918
 	},
 	"shared_with": [],
 	"autorun_time": -1,
@@ -20,12 +21,13 @@ session.add(model.Test(data={
 	"data": {}
 }))
 session.add(model.Test(data={
-	"id": 1,
-	"user_id": 0,
+	"id": 2,
+	"user_id": 2,
 	"name": "Test 2",
 	"last": {
 		"ok": None,
-		"time": None
+		"elapsed_time": None,
+		"timestamp": None
 	},
 	"shared_with": [1],
 	"autorun_time": -1,
@@ -33,13 +35,15 @@ session.add(model.Test(data={
 	"data": {}
 }))
 session.add(model.History(data={
-	"test_id": 0,
+	"test_id": 1,
 	"ok": False,
-	"time": 1496836917
+	"elapsed_time": 337,
+	"timestamp": 1496836917
 }))
 session.add(model.History(data={
-	"test_id": 0,
+	"test_id": 1,
 	"ok": True,
-	"time": 1496836918
+	"elapsed_time": 16,
+	"timestamp": 1496836918
 }))
 session.flush()

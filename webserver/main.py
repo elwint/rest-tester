@@ -7,8 +7,9 @@ import string
 import random
 
 from db import session
-import data
 import model
+if not session.autocommit or session.query(model.Test).count() == 0:
+	import data
 import crypt
 
 app = Flask("rest-tester")
@@ -108,7 +109,7 @@ def add_test():
 
 	last_test = session.query(model.Test).order_by(model.Test.data["id"].astext.desc()).first()
 	if last_test == None:
-		test_id = 0
+		test_id = 1
 	else:
 		test_id = last_test.data['id'] + 1
 	test = model.Test(data={
@@ -117,7 +118,8 @@ def add_test():
 		"name": input_data['name'],
 		"last": {
 			"ok": None,
-			"time": None
+			"elapsed_time": None,
+			"timestamp": None
 		},
 		"shared_with": [],
 		"autorun_time": input_data['autorun_time'],
@@ -161,7 +163,7 @@ def get_test_history_by_id(test_id):
 
 	out = []
 	for h in history:
-		out.append({"ok": h.data['ok'], "time": h.data['time']})
+		out.append({"ok": h.data['ok'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
 	return json.dumps(out)
 
 def check_test_access(test_id, owner_only=False):
