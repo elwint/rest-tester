@@ -89,81 +89,14 @@ class Login extends React.Component {
                 )
             );
         } else {
-            return React.createElement(FilterableTestTable);
+            return React.createElement(TestTable);
         }
 	}
 }
 
-class TestGroupRow extends React.Component {
-    render() {
-        return React.createElement('tr', null,
-            React.createElement('th', null, this.props.group)
-        );
-    }
-}
-
-class TestRow extends React.Component {
-    render() {
-        if(this.props.test.passed) {
-            var name = React.createElement('span', {style: "color: green;"}, this.props.test.name);
-        } else {
-            var name = React.createElement('span', {style: "color: red;"}, this.props.test.name);
-        }
-    
-        return React.createElement('tr', null,
-            React.createElement('td', null, 'test'),
-            React.createElement('td', null, this.props.test.price)
-        );
-    }
-}
-
 class TestTable extends React.Component {
-    render() {
-        
-        var rows = [];
-        var lastGroup = null;
-        
-        console.log(this.props.failedOnly);
-        
-        this.props.tests.forEach((test) => {
-            if (!test.last.ok && this.props.failedOnly) {
-                return;
-            }
-            
-            if (test.group !== lastGroup) {
-                rows.push(React.createElement(TestGroupRow, {group: test.group, key: test.group}));
-            }
-            
-            rows.push(React.createElement(TestRow, {test: test, key: test.name}));
-            lastGroup = test.group;
-        });
-        
-        return React.createElement('table', null,
-            React.createElement('thead', null,
-                React.createElement('tr', null,
-                    React.createElement('th', null, 'Name')
-                )
-            ),
-            React.createElement('tbody', null, {rows})
-        );
-    }
-}
-
-class FilterableTestTable extends React.Component {
     constructor(props) {
         super(props);
-        
-        this.state = {
-            failedOnly: false
-        };
-    
-        this.handleFailedInput = this.handleFailedInput.bind(this);
-    }
-  
-    handleInStockInput(failedOnly) {
-        this.setState({
-            failedOnly: failedOnly
-        });
     }
     
     componentDidMount() {
@@ -178,14 +111,38 @@ class FilterableTestTable extends React.Component {
         });
     }
 
+
     render() {
-        return React.createElement(TestTable, {
-                tests: this.props.tests,
-                failedOnly: this.state.failedOnly
-            }
+        
+        var rows = [];
+        
+        this.props.tests.forEach((test) => {
+            rows.push(React.createElement(TestRow, {test: test}));
+        });
+        
+        return React.createElement('table', null,
+            React.createElement('thead', null,
+                React.createElement('tr', null,
+                    React.createElement('th', null, 'Name')
+                )
+            ),
+            React.createElement('tbody', null, {rows})
         );
     }
 }
 
+class TestRow extends React.Component {
+    render() {
+        if(this.props.test.ok) {
+            var name = React.createElement('span', {style: "color: green;"}, this.props.test.name);
+        } else {
+            var name = React.createElement('span', {style: "color: red;"}, this.props.test.name);
+        }
+    
+        return React.createElement('tr', null,
+            React.createElement('td', null, 'test')
+        );
+    }
+}
 
 ReactDOM.render(React.createElement(Login, null), document.getElementById("page"));
