@@ -1,6 +1,17 @@
 'use strict';
 
-let token = '';
+let token = 'g86wshfhmchm4Fjme1WfquMw21VsXXmOXDO7NYHVwDGbt5Wn2S5jk0aLYoPIRUk7Rhq2op7lRfm4X4xqJoirF6gTTUHKhYBsbj3Y';
+let tests = [];
+
+class Container extends React.Component {
+    render() {
+        if(!token) {
+            return React.createElement(Login, null);
+        } else {
+            return React.createElement(TestTable, null);
+        }
+    }
+}
 
 class Errors extends React.Component {
 	constructor(props) {
@@ -36,6 +47,7 @@ class Login extends React.Component {
 		event.target.className=""
 		this.setState({[event.target.name]: event.target.value});
 	}
+	
 	handleSubmit(event) {
 		event.preventDefault();
 
@@ -62,6 +74,7 @@ class Login extends React.Component {
 		}).then((body) => {
 			this.setError();
 			token = body;
+            console.log(token);
             this.setState(this.state);
 		}).catch((err) => {
 			let msg = err.message;
@@ -78,19 +91,15 @@ class Login extends React.Component {
 	}
 
 	render() {
-        if(!token) {
-            return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
-                React.createElement('h1', null, 'Login'),
-                React.createElement(Errors, {ref: "errors", class: 'hidden'}),
-                React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
-                React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
-                React.createElement('div', {className: "right"}, 
-                    React.createElement('input', {type: "submit", value: "Login"})
-                )
-            );
-        } else {
-            return React.createElement(TestTable);
-        }
+        return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
+            React.createElement('h1', null, 'Login'),
+            React.createElement(Errors, {ref: "errors", class: 'hidden'}),
+            React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
+            React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
+            React.createElement('div', {className: "right"}, 
+                React.createElement('input', {type: "submit", value: "Login"})
+            )
+        );
 	}
 }
 
@@ -107,17 +116,16 @@ class TestTable extends React.Component {
 				'Token': token
             }
         }).then(function(response) {
-            this.props.tests = reponse;
+            tests = response;
         });
     }
 
 
     render() {
-        
         var rows = [];
         
-        this.props.tests.forEach((test) => {
-            rows.push(React.createElement(TestRow, {test: test}));
+        tests.forEach((test) => {
+            rows.push(React.createElement(TestRow, {ref: test}));
         });
         
         return React.createElement('table', null,
@@ -126,7 +134,7 @@ class TestTable extends React.Component {
                     React.createElement('th', null, 'Name')
                 )
             ),
-            React.createElement('tbody', null, {rows})
+            React.createElement('tbody', null, rows)
         );
     }
 }
@@ -140,9 +148,9 @@ class TestRow extends React.Component {
         }
     
         return React.createElement('tr', null,
-            React.createElement('td', null, 'test')
+            React.createElement('td', null, this.props.test.name)
         );
     }
 }
 
-ReactDOM.render(React.createElement(Login, null), document.getElementById("page"));
+ReactDOM.render(React.createElement(Container, null), document.getElementById("page"));
