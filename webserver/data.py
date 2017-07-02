@@ -8,41 +8,41 @@ session.add(model.Token(user_id=1, token="test"))
 
 session.add(model.Test(data={
 	"id": 1,
+	"version": 1,
 	"user_id": 1,
 	"name": "Test 1",
 	"last": {
-		"ok": True,
+		"status": 200,
 		"elapsed_time": 16,
 		"timestamp": 1496836918
 	},
 	"shared_with": [],
-	"autorun_time": -1,
+	"autorun": "never",
 	"group": None,
 	"data": {}
 }))
 session.add(model.Test(data={
 	"id": 2,
+	"version": 1,
 	"user_id": 2,
 	"name": "Test 2",
-	"last": {
-		"ok": None,
-		"elapsed_time": None,
-		"timestamp": None
-	},
+	"last": {},
 	"shared_with": [1],
-	"autorun_time": -1,
+	"autorun": "every_day",
 	"group": None,
 	"data": {}
 }))
 session.add(model.History(data={
 	"test_id": 1,
-	"ok": False,
+	"version": 1,
+	"status": 500,
 	"elapsed_time": 337,
 	"timestamp": 1496836917
 }))
 session.add(model.History(data={
 	"test_id": 1,
-	"ok": True,
+	"version": 1,
+	"status": 200,
 	"elapsed_time": 16,
 	"timestamp": 1496836918
 }))

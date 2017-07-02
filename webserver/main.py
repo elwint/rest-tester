@@ -1,10 +1,8 @@
 #!/usr/bin/python3
 
 from flask import Flask, abort, request, g
-from sqlalchemy import Integer
-import json
-import string
-import random
+from sqlalchemy import Integer, not_
+import json, string, random, time
 
 from db import session
 import model
@@ -15,11 +13,13 @@ import crypt
 app = Flask("rest-tester")
 app.config['PROPAGATE_EXCEPTIONS']=True
 
+# autorun_tests = session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
+
 @app.after_request
 def set_header(response):
 	response.headers["Content-Type"] = "application/json"
 	response.headers["Access-Control-Allow-Origin"] = "*"
-	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PUT, DELETE"
+	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PATCH, DELETE"
 	response.headers["Access-Control-Allow-Headers"] = "Token, Content-Type"
 	return response
 
@@ -90,7 +90,7 @@ def get_user_by_id(user_id):
 @app.route("/tests/<int:test_id>", methods=['GET'])
 def get_test_by_id(test_id):
 	test = check_test_access(test_id, False)
-	return json.dumps(test.data)
+	return json.dumps(test)
 
 @app.route("/tests/mine", methods=['GET'])
 def get_my_tests():
@@ -104,7 +104,9 @@ def get_my_tests():
 @app.route("/tests", methods=['POST'])
 def add_test():
 	input_data = request.get_json()
-	if 'name' not in input_data or 'autorun_time' not in input_data or 'data' not in input_data:
+	if 'name' not in input_data or 'autorun' not in input_data or 'data' not in input_data:
+		abort(400)
+	if input_data['autorun'] not in ["never", "every_day", "every_week", "every_month"]:
 		abort(400)
 
 	last_test = session.query(model.Test).order_by(model.Test.data["id"].astext.desc()).first()
@@ -114,35 +116,40 @@ def add_test():
 		test_id = last_test.data['id'] + 1
 	test = model.Test(data={
 		"id": test_id,
+		"version": 1,
 		"user_id": g.user_id,
 		"name": input_data['name'],
-		"last": {
-			"ok": None,
-			"elapsed_time": None,
-			"timestamp": None
-		},
+		"last": {},
 		"shared_with": [],
-		"autorun_time": input_data['autorun_time'],
+		"autorun": input_data['autorun'], # "never", "every_day", "every_week", "every_month"
 		"group": input_data.get('group', None), # Optional
 		"data": input_data['data']
 	})
 	session.add(test)
 	return json.dumps({"id": test_id}), 201
 
-@app.route("/tests/<int:test_id>", methods=['PUT'])
+@app.route("/tests/<int:test_id>", methods=['PATCH'])
 def update_test(test_id):
 	input_data = request.get_json()
-	test = check_test_access(test_id, True)
+	if 'autorun' in input_data and input_data['autorun'] not in ["never", "every_day", "every_week", "every_month"]:
+		abort(400)
 
+	test = check_test_access(test_id, True)
+	version = test['version']
+	last = test['last']
+	if 'data' in input_data and input_data['data'] != test['data']:
+		version += 1
+		last = {}
 	count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer)==test_id).update({"data": {
 		"id": test_id,
+		"version": version,
 		"user_id": g.user_id,
-		"name": input_data.get('name', test.data['name']),
-		"last": test.data['last'],
-		"shared_with": input_data.get('shared_with', test.data['shared_with']),
-		"autorun_time": input_data.get('autorun_time', test.data['autorun_time']),
-		"group": input_data.get('group', test.data['group']),
-		"data": input_data.get('data', test.data['data']),
+		"name": input_data.get('name', test['name']),
+		"last": last,
+		"shared_with": input_data.get('shared_with', test['shared_with']),
+		"autorun": input_data.get('autorun', test['autorun']),
+		"group": input_data.get('group', test['group']),
+		"data": input_data.get('data', test['data']),
 	}}, synchronize_session=False)
 	if count == 0:
 		abort(500)
@@ -163,7 +170,7 @@ def get_test_history_by_id(test_id):
 
 	out = []
 	for h in history:
-		out.append({"ok": h.data['ok'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
+		out.append({"version": h.data['version'], "status": h.data['status'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
 	return json.dumps(out)
 
 def check_test_access(test_id, owner_only=False):
@@ -171,9 +178,50 @@ def check_test_access(test_id, owner_only=False):
 	if test == None:
 		abort(404)
 	if test.data['user_id'] == g.user_id:
-		return test
+		return test.data
 	if not owner_only and g.user_id in test.data['shared_with']:
-		return test
+		return test.data
 	abort(403)
+
+@app.route("/tests/<int:test_id>", methods=['POST'])
+def run_test(test_id):
+	current_test = check_test_access(test_id, True)
+
+	# Run test
+	timestamp = int(time.time())
+	time.sleep(random.choice([0.1, 0.2, 0.3, 0.4, 0.5]))
+	status = random.choice([200, 500, 404, 403])
+	elapsed_time = random.choice([20, 213, 399, 443])
+
+	test = check_test_access(test_id, True) # Only update last if version is still the same
+	if current_test['version'] == test['version']:
+		count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer) == test_id).update(
+			{"data": {
+				"id": test_id,
+				"version": test['version'],
+				"user_id": g.user_id,
+				"name": test['name'],
+				"last": {
+					"status": status,
+					"elapsed_time": elapsed_time,
+					"timestamp": timestamp
+				},
+				"shared_with": test['shared_with'],
+				"autorun": test['autorun'],
+				"group": test['group'],
+				"data": test['data'],
+			}}, synchronize_session=False)
+		if count == 0:
+			abort(500)
+
+	h = model.History(data={
+		"test_id": test_id,
+		"version": current_test['version'],
+		"status": status,
+		"elapsed_time": elapsed_time,
+		"timestamp": timestamp
+	})
+	session.add(h)
+	return json.dumps({"version": current_test['version'], "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
 
 app.run()
