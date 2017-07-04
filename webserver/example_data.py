@@ -19,7 +19,7 @@ session.add(model.Test(data={
 	},
 	"shared_with": [],
 	"autorun": "never",
-	"group": None,
+	"group": "Test extract",
 	"data": {
 		"method": "GET",
 		"url": "http://example.com/tests/1",
@@ -49,12 +49,12 @@ session.add(model.Test(data={
 session.add(model.Test(data={
 	"id": 2,
 	"version": 1,
-	"user_id": 2,
+	"user_id": 1,
 	"name": "Test 2",
 	"last": {},
-	"shared_with": [1],
+	"shared_with": [],
 	"autorun": "every_day",
-	"group": None,
+	"group": "Test extract",
 	"data": {
 		"method": "POST",
 		"url": "http://example.com/tests/",
@@ -92,17 +92,17 @@ session.add(model.Test(data={
 	"group": None,
 	"data": {
 		"method": "GET",
-		"url": "http://example.com/1",
+		"url": "http://example.com",
 		"status": "200"
 	}
 }))
 session.add(model.Test(data={
 	"id": 4,
 	"version": 2,
-	"user_id": 1,
+	"user_id": 2,
 	"name": "Test 4",
 	"last": {},
-	"shared_with": [],
+	"shared_with": [1],
 	"autorun": "never",
 	"group": None,
 	"data": {

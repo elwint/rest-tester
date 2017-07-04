@@ -2,7 +2,7 @@
 
 from flask import Flask, abort, request, g
 from sqlalchemy import Integer, not_
-import json, string, random, time
+import json, string, random, time, os, datetime, subprocess
 
 from db import session
 import model
@@ -99,6 +99,7 @@ def get_my_tests():
 	out = []
 	for test in tests:
 		out.append(test.data)
+	out = sorted(out, key=lambda k: "" if k['group'] is None else k['group']) # Sort by group
 	return json.dumps(out)
 
 @app.route("/tests", methods=['POST'])
@@ -175,26 +176,31 @@ def get_test_history_by_id(test_id):
 		out.append({"version": h.data['version'], "ok": h.data['ok'], "status": h.data['status'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
 	return json.dumps(out)
 
-def check_test_access(test_id, owner_only=False):
-	test = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer)==test_id).first()
-	if test == None:
-		abort(404)
-	if test.data['user_id'] == g.user_id:
-		return test.data
-	if not owner_only and g.user_id in test.data['shared_with']:
-		return test.data
-	abort(403)
-
 @app.route("/tests/<int:test_id>", methods=['POST'])
 def run_test(test_id):
 	current_test = check_test_access(test_id, True)
 
 	# Run test
 	timestamp = int(time.time())
-	time.sleep(random.choice([0.1, 0.2, 0.3, 0.4, 0.5]))
-	ok = random.choice([True, False])
-	status = random.choice([200, 500, 404, 403])
-	elapsed_time = random.choice([20, 213, 399, 443])
+	yaml = parse_to_yaml([current_test['data']])
+	filename = str(test_id) + ".yaml"
+	output = execute_yaml_test(filename, yaml)
+
+	elapsed_time = int((b-a).total_seconds() * 1000)
+	if "FAILED" in output[-1]:
+		ok = False
+		status = -1
+		for line in output:
+			if "HTTP Status Code:" in line: # TODO: Fix status
+				if line[-4] != "None":
+					status = int(line[-3])
+				break
+	elif "SUCCEEDED" in output[-1]:
+		ok = True
+		status = current_test['data']['status']
+	else: # Unknown error
+		ok = False
+		status = -1
 
 	test = check_test_access(test_id, True) # Only update last if version is still the same
 	if current_test['version'] == test['version']:
@@ -227,7 +233,76 @@ def run_test(test_id):
 		"timestamp": timestamp
 	})
 	session.add(h)
-	return json.dumps({"version": current_test['version'], "ok": ok, "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
+	return json.dumps({"ok": ok, "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
+
+@app.route("/tests/<int:test_id>/group", methods=['POST'])
+def run_test_group(test_id):
+	test = check_test_access(test_id, True)
+	if test["group"] == None:
+		abort(404)
+	group_tests = session.query(model.Test).filter(model.Test.data["group"].astext == test["group"]).all()
+
+	current_tests = []
+	for group_test in group_tests:
+		if group_test.data['user_id'] == g.user_id:
+			current_tests.append(group_test.data)
+	current_tests = sorted(current_tests, key=lambda k: k['name']) # Sort alphabetically by name (test run order)
+
+	# Run tests
+	timestamp = int(time.time())
+	yaml = parse_to_yaml([current_test['data'] for current_test in current_tests ])
+	filename = str(test_id) + ".yaml"
+	output = execute_yaml_test(filename, yaml)
+
+	result = []
+	for current_test in current_tests:
+		# TODO: Parse per test
+		status = random.choice([200, 500, 404, 403])
+		elapsed_time = random.choice([20, 213, 399, 443])
+		ok = random.choice([True, False])
+		test = check_test_access(current_test['id'], True)
+		if current_test['version'] == test['version']:
+			count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer) == current_test['id']).update(
+				{"data": {
+					"id": test['id'],
+					"version": test['version'],
+					"user_id": g.user_id,
+					"name": test['name'],
+					"last": {
+						"ok": ok,
+						"status": status,
+						"elapsed_time": elapsed_time,
+						"timestamp": timestamp
+					},
+					"shared_with": test['shared_with'],
+					"autorun": test['autorun'],
+					"group": test['group'],
+					"data": test['data'],
+				}}, synchronize_session=False)
+			if count == 0:
+				abort(500)
+
+		h = model.History(data={
+			"test_id": current_test['id'],
+			"version": current_test['version'],
+			"ok": ok,
+			"status": status,
+			"elapsed_time": elapsed_time,
+			"timestamp": timestamp
+		})
+		session.add(h)
+		result.append({"test_id":  current_test['id'], "ok": ok, "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp})
+	return json.dumps(result), 201
+
+def check_test_access(test_id, owner_only=False):
+	test = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer) == test_id).first()
+	if test == None:
+		abort(404)
+	if test.data['user_id'] == g.user_id:
+		return test.data
+	if not owner_only and g.user_id in test.data['shared_with']:
+		return test.data
+	abort(403)
 
 def autorun_tests(): # TODO
 	tests = session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
@@ -255,33 +330,46 @@ def validate_test_data(test_data):
 				return False
 	return True
 
+
+def execute_yaml_test(filename, yaml): # Run test
+	while os.path.isfile(filename): # Test is already running, waiting...
+		pass
+	with open(filename, "w") as file:
+		file.write(yaml)
+	a = datetime.datetime.now()
+	output = os.popen('python pyresttest "" ' + filename).read().splitlines()
+	# output = subprocess.run(['python pyresttest "" '], stdout=subprocess.PIPE)
+	b = datetime.datetime.now()
+	os.remove(filename)
+	return output
+
 def parse_to_yaml(tests_data):
 	yaml = ""
 	bind_vars = []
 	for test_data in tests_data:
-		yaml += "- test\n" \
-				"	- url: " + test_data["url"] + "\n" \
-				"	- method: '" + test_data["method"] + "'\n"
+		yaml += "- test:\n" \
+				"    - url: '" + test_data["url"] + "'\n" \
+				"    - method: '" + test_data["method"] + "'\n"
 		if test_data["method"] != "GET" and "body" in test_data:
-			yaml += "	- body: '" + test_data["body"] + "'\n" + \
-					"	- headers: : {Content-Type: application/json}\n"
-		yaml += "	- expected_status: [" + test_data["status"] + "]\n"
+			yaml += "    - body: '" + test_data["body"] + "'\n" + \
+					"    - headers: {'Content-Type': 'application/json'}\n"
+		yaml += "    - expected_status: [" + test_data["status"] + "]\n"
 		if "extract" in test_data and test_data["extract"]:
-			yaml += "	- extract_binds:\n"
+			yaml += "    - extract_binds:\n"
 			for extract in test_data["extract"]:
-				yaml += "		- '" + extract["variable"] + "': {" + DATA_TYPES[extract["type"]] + ": '" + extract["key"] + "'}\n"
+				yaml += "        - '" + extract["variable"] + "': {" + DATA_TYPES[extract["type"]] + ": '" + extract["key"] + "'}\n"
 				bind_vars.append(extract["variable"])
 		if "checks" in test_data and test_data["checks"]:
-			yaml += "	- validators:\n"
+			yaml += "    - validators:\n"
 			for check in test_data["checks"]:
 				if check["compare"] == "exists":
-					yaml += "		- extract_test: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', test: 'exists'}\n"
+					yaml += "        - extract_test: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', test: 'exists'}\n"
 				else:
 					if check["value"] in bind_vars:
 						expected = "{template: '$" + check["value"] + "'}"
 					else:
 						expected = "'" + check["value"] + "'"
-					yaml += "		- compare: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', comparator: '" + DATA_COMPARATORS[check["compare"]] + "', expected: " + expected + "}\n"
+					yaml += "        - compare: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', comparator: '" + DATA_COMPARATORS[check["compare"]] + "', expected: " + expected + "}\n"
 	return yaml
 
 app.run()
