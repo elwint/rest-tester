@@ -33,6 +33,33 @@ session.add(model.Test(data={
 	"group": None,
 	"data": {}
 }))
+session.add(model.Test(data={
+	"id": 3,
+	"version": 1,
+	"user_id": 1,
+	"name": "Test 3",
+	"last": {
+		"ok": False,
+		"status": 200,
+		"elapsed_time": 85,
+		"timestamp": 1496836920
+	},
+	"shared_with": [],
+	"autorun": "never",
+	"group": None,
+	"data": {}
+}))
+session.add(model.Test(data={
+	"id": 4,
+	"version": 2,
+	"user_id": 1,
+	"name": "Test 4",
+	"last": {},
+	"shared_with": [],
+	"autorun": "never",
+	"group": None,
+	"data": {}
+}))
 session.add(model.History(data={
 	"test_id": 1,
 	"version": 1,
