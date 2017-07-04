@@ -262,7 +262,7 @@ def parse_to_yaml(tests_data):
 		yaml += "- test\n" \
 				"	- url: " + test_data["url"] + "\n" \
 				"	- method: '" + test_data["method"] + "'\n"
-		if "body" in test_data:
+		if test_data["method"] != "GET" and "body" in test_data:
 			yaml += "	- body: '" + test_data["body"] + "'\n" + \
 					"	- headers: : {Content-Type: application/json}\n"
 		yaml += "	- expected_status: [" + test_data["status"] + "]\n"

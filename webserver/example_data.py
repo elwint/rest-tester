@@ -90,7 +90,11 @@ session.add(model.Test(data={
 	"shared_with": [],
 	"autorun": "never",
 	"group": None,
-	"data": {}
+	"data": {
+		"method": "GET",
+		"url": "http://example.com/1",
+		"status": "200"
+	}
 }))
 session.add(model.Test(data={
 	"id": 4,
@@ -101,7 +105,11 @@ session.add(model.Test(data={
 	"shared_with": [],
 	"autorun": "never",
 	"group": None,
-	"data": {}
+	"data": {
+		"method": "GET",
+		"url": "http://example.com/1",
+		"status": "200"
+	}
 }))
 session.add(model.History(data={
 	"test_id": 1,
