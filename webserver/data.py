@@ -12,6 +12,7 @@ session.add(model.Test(data={
 	"user_id": 1,
 	"name": "Test 1",
 	"last": {
+		"ok": True,
 		"status": 200,
 		"elapsed_time": 16,
 		"timestamp": 1496836918
@@ -35,6 +36,7 @@ session.add(model.Test(data={
 session.add(model.History(data={
 	"test_id": 1,
 	"version": 1,
+	"ok": True,
 	"status": 500,
 	"elapsed_time": 337,
 	"timestamp": 1496836917
@@ -42,6 +44,7 @@ session.add(model.History(data={
 session.add(model.History(data={
 	"test_id": 1,
 	"version": 1,
+	"ok": True,
 	"status": 200,
 	"elapsed_time": 16,
 	"timestamp": 1496836918
