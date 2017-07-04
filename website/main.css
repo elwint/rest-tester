@@ -39,6 +39,9 @@ input[type="submit"], button {
 	border-radius: 2px;
 	border: none;
 }
+input[type="submit"]:hover, button:hover {
+    background-color: #00e6cf;
+}
 
 .right {
 	text-align: right;
@@ -64,6 +67,42 @@ input[type="submit"], button {
 
 #login input[type="submit"] {
 	margin-bottom: 0;
+}
+
+#tests {
+	background: #FFF;
+	width: 800px;
+	padding: 16px;
+	margin: 16px auto;
+	border-radius: 2px;
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
+}
+
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    line-height: 36px;
+    color: white;
+}
+
+td {
+    padding: 0 10px;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+}
+
+.passed {
+    background-color: #00897B;
+}
+.passed:hover {
+    background-color: #00e6cf;
+}
+.failed {
+    background-color: #ef5350;
+}
+.failed:hover {
+    background-color: #f48c8a;
 }
 
 error {

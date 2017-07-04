@@ -134,30 +134,36 @@ class TestTable extends React.Component {
 
     render() {
         var rows = [];
+	var count = 0;
+	var failed = 0;
 
 	this.state.tests.forEach(function(test) {
 	    rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
+	    count++;
+	    if(test.last.ok == false) {
+	        failed++;
+	    }
 	});
         
-        return React.createElement('table', null,
-            React.createElement('thead', null,
-                React.createElement('tr', null,
-                    React.createElement('th', null, 'Name')
-                )
-            ),
-            React.createElement('tbody', null, rows)
-        );
+        return React.createElement('div', {id: 'tests'}, 
+	    React.createElement('h1', null, 'Test API tests'),
+	    React.createElement('h2', null, 'Status'),
+	    React.createElement('p', null, failed+'/'+count+' tests failed'),
+	    React.createElement('table', null,
+	        React.createElement('tbody', null, rows)
+	    )
+	);
     }
 }
 
 class TestRow extends React.Component {
     render() {
         if(this.props.test.last.ok == true) {
-	    var icon = React.createElement('i', {style: {color: 'green'}, className: 'fa fa-check', 'aria-hidden': 'true'});
-            var status = React.createElement('span', {style: {color: 'green'}}, 'Status: ' + this.props.test.last.status);
+	    var icon = React.createElement('i', {className: 'fa fa-check', 'aria-hidden': 'true'});
+	    var color = 'passed';
 	} else {
-	    var icon = React.createElement('i', {style: {color: 'red'}, className: 'fa fa-cross', 'aria-hidden': 'true'});
-            var status = React.createElement('span', {style: {color: 'red'}}, 'Status: ' + this.props.test.last.status);
+	    var icon = React.createElement('i', {className: 'fa fa-times', 'aria-hidden': 'true'});
+	    var color = 'failed';
 	}
 
 	var date = new Date(this.props.test.last.timestamp * 1000);
@@ -165,7 +171,7 @@ class TestRow extends React.Component {
 	var minutes = ('0' + date.getMinutes()).substr(-2);
 	var seconds = ('0' + date.getSeconds()).substr(-2);
     
-        return React.createElement('tr', null,
+        return React.createElement('tr', {className: color},
             React.createElement('td', null, icon),
             React.createElement('td', null, this.props.test.name),
             React.createElement('td', null, status),
