@@ -69,6 +69,10 @@ input[type="submit"]:hover, button:hover {
 	margin-bottom: 0;
 }
 
+button {
+    margin: 10px;
+}
+
 #tests {
 	background: #FFF;
 	width: 800px;
