@@ -152,14 +152,25 @@ class TestTable extends React.Component {
 
 class TestRow extends React.Component {
     render() {
-        if(this.props.test.last.status == 200) {
-            var name = React.createElement('span', {style: {color: 'green'}}, this.props.test.name);
-        } else {
-            var name = React.createElement('span', {style: {color: 'red'}}, this.props.test.name);
-        }
+        if(this.props.test.last.ok == true) {
+	    var icon = React.createElement('i', {style: {color: 'green'}, className: 'fa fa-check', 'aria-hidden': 'true'});
+            var status = React.createElement('span', {style: {color: 'green'}}, 'Status: ' + this.props.test.last.status);
+	} else {
+	    var icon = React.createElement('i', {style: {color: 'red'}, className: 'fa fa-cross', 'aria-hidden': 'true'});
+            var status = React.createElement('span', {style: {color: 'red'}}, 'Status: ' + this.props.test.last.status);
+	}
+
+	var date = new Date(this.props.test.last.timestamp * 1000);
+	var hours = ('0' + date.getHours()).substr(-2);
+	var minutes = ('0' + date.getMinutes()).substr(-2);
+	var seconds = ('0' + date.getSeconds()).substr(-2);
     
         return React.createElement('tr', null,
-            React.createElement('td', null, name)
+            React.createElement('td', null, icon),
+            React.createElement('td', null, this.props.test.name),
+            React.createElement('td', null, status),
+            React.createElement('td', null, date.getDate()+'-'+(date.getMonth()+1)+'-'+date.getFullYear()+' '+hours+':'+minutes+':'+seconds),
+            React.createElement('td', null, this.props.test.last.elapsed_time + 'ms')
         );
     }
 }
