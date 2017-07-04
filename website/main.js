@@ -1,6 +1,6 @@
 'use strict';
 
-let token = 'g86wshfhmchm4Fjme1WfquMw21VsXXmOXDO7NYHVwDGbt5Wn2S5jk0aLYoPIRUk7Rhq2op7lRfm4X4xqJoirF6gTTUHKhYBsbj3Y';
+let token = '8QvjVlco79P7qqvzXkNVoNjGOKbEcPIKbfhzXFnuh9kFUyX5cOyaM4f06EdcPGNnCbi3nfyRzKFXb2FdEk64oCTEI6nDpXIDiJa9';
 let tests = [];
 
 class Container extends React.Component {
@@ -110,22 +110,26 @@ class TestTable extends React.Component {
     
     componentDidMount() {
         fetch('http://localhost:5000/tests/mine', {
-			method: 'GET',
+	    method: 'GET',
             headers: {
-				'Content-Type': 'application/json',
-				'Token': token
+		'Content-Type': 'application/json',
+		'Token': token
             }
-        }).then(function(response) {
-            tests = response;
-        });
+        }).then((response) => {
+            return response.json();
+        }).then((body) => {
+	    tests = body;
+	    console.log(tests);
+            this.forceUpdate();
+	});
     }
 
 
     render() {
         var rows = [];
-        
-        tests.forEach((test) => {
-            rows.push(React.createElement(TestRow, {ref: test}));
+
+        tests.forEach(function(test) {
+            rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
         });
         
         return React.createElement('table', null,
@@ -141,14 +145,14 @@ class TestTable extends React.Component {
 
 class TestRow extends React.Component {
     render() {
-        if(this.props.test.ok) {
-            var name = React.createElement('span', {style: "color: green;"}, this.props.test.name);
+        if(this.props.test.last.status == 200) {
+            var name = React.createElement('span', {style: {color: 'green'}}, this.props.test.name);
         } else {
-            var name = React.createElement('span', {style: "color: red;"}, this.props.test.name);
+            var name = React.createElement('span', {style: {color: 'red'}}, this.props.test.name);
         }
     
         return React.createElement('tr', null,
-            React.createElement('td', null, this.props.test.name)
+            React.createElement('td', null, name)
         );
     }
 }
