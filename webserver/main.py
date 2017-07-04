@@ -22,7 +22,7 @@ DATA_COMPARATORS = {"equals": "str_eq", "exists": "exists"}
 def set_header(response):
 	response.headers["Content-Type"] = "application/json"
 	response.headers["Access-Control-Allow-Origin"] = "*"
-	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PUT, DELETE"
+	response.headers["Access-Control-Allow-Methods"] = "OPTIONS, GET, POST, PUT, DELETE"
 	response.headers["Access-Control-Allow-Headers"] = "Token, Content-Type"
 	return response
 
