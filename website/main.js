@@ -3,22 +3,22 @@
 let token = '';
 
 class Container extends React.Component {
-    constructor(props) {
-	super(props);
-        this.state = { token: {}};
-    }
+	constructor(props) {
+		super(props);
+		this.state = { token: {}};
+	}
 
-    setToken(token) {
-        this.setState({token: token});
-    }
+	setToken(token) {
+		this.setState({token: token});
+	}
 
-    render() {
-        if(Object.keys(this.state.token).length === 0 && this.state.token.constructor === Object) {
-            return React.createElement(Login, {setToken: this.setToken.bind(this)});
-        } else {
-            return React.createElement(TestTable, null);
-        }
-    }
+	render() {
+		if(Object.keys(this.state.token).length === 0 && this.state.token.constructor === Object) {
+			return React.createElement(Login, {setToken: this.setToken.bind(this)});
+		} else {
+			return React.createElement(TestTable, null);
+		}
+	}
 }
 
 class Errors extends React.Component {
@@ -55,7 +55,7 @@ class Login extends React.Component {
 		event.target.className=""
 		this.setState({[event.target.name]: event.target.value});
 	}
-	
+
 	handleSubmit(event) {
 		event.preventDefault();
 
@@ -98,87 +98,87 @@ class Login extends React.Component {
 	}
 
 	render() {
-        return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
-            React.createElement('h1', null, 'Login'),
-            React.createElement(Errors, {ref: "errors", class: 'hidden'}),
-            React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
-            React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
-            React.createElement('div', {className: "right"}, 
-                React.createElement('input', {type: "submit", value: "Login"})
-            )
-        );
+		return React.createElement('form', {id: 'login', onSubmit: this.handleSubmit},
+			React.createElement('h1', null, 'Login'),
+			React.createElement(Errors, {ref: "errors", class: 'hidden'}),
+			React.createElement('input', {type: "text", name: "user", placeholder: "Username", onChange: this.handleChange, ref: "user"}),
+			React.createElement('input', {type: "password", name: "pass", placeholder: "Password", onChange: this.handleChange, ref: "pass"}),
+			React.createElement('div', {className: "right"}, 
+				React.createElement('input', {type: "submit", value: "Login"})
+			)
+		);
 	}
 }
 
 class TestTable extends React.Component {
-    constructor(props) {
-        super(props);
+	constructor(props) {
+		super(props);
 
-    	this.state = {
-            tests: []
-	};
+		this.state = {
+			tests: []
+		};
 
-        fetch('http://localhost:5000/tests/mine', {
-	    method: 'GET',
-            headers: {
-		'Content-Type': 'application/json',
-		'Token': token
-            }
-        }).then((response) => {
-            return response.json();
-        }).then((tests) => {
-	    console.log(tests);
-	    this.setState({ tests });
-	});
-    }
+		fetch('http://localhost:5000/tests/mine', {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json',
+				'Token': token
+			}
+		}).then((response) => {
+			return response.json();
+		}).then((tests) => {
+			console.log(tests);
+			this.setState({ tests });
+		});
+	}
 
-    render() {
-        var rows = [];
-	var count = 0;
-	var failed = 0;
+	render() {
+		var rows = [];
+		var count = 0;
+		var failed = 0;
 
-	this.state.tests.forEach(function(test) {
-	    rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
-	    count++;
-	    if(test.last.ok == false) {
-	        failed++;
-	    }
-	});
-        
-        return React.createElement('div', {id: 'tests'}, 
-	    React.createElement('h1', null, 'Test API tests'),
-	    React.createElement('h2', null, 'Status'),
-	    React.createElement('p', null, failed+'/'+count+' tests failed'),
-	    React.createElement('table', null,
-	        React.createElement('tbody', null, rows)
-	    )
-	);
-    }
+		this.state.tests.forEach(function(test) {
+			rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
+			count++;
+			if(test.last.ok == false) {
+				failed++;
+			}
+		});
+
+		return React.createElement('div', {id: 'tests'}, 
+			React.createElement('h1', null, 'Test API tests'),
+			React.createElement('h2', null, 'Status'),
+			React.createElement('p', null, failed+'/'+count+' tests failed'),
+			React.createElement('table', null,
+				React.createElement('tbody', null, rows)
+			)
+		);
+	}
 }
 
 class TestRow extends React.Component {
-    render() {
-        if(this.props.test.last.ok == true) {
-	    var icon = React.createElement('i', {className: 'fa fa-check', 'aria-hidden': 'true'});
-	    var color = 'passed';
-	} else {
-	    var icon = React.createElement('i', {className: 'fa fa-times', 'aria-hidden': 'true'});
-	    var color = 'failed';
-	}
+	render() {
+		if(this.props.test.last.ok == true) {
+			var icon = React.createElement('i', {className: 'fa fa-check', 'aria-hidden': 'true'});
+			var color = 'passed';
+		} else {
+			var icon = React.createElement('i', {className: 'fa fa-times', 'aria-hidden': 'true'});
+			var color = 'failed';
+		}
 
-	var date = new Date(this.props.test.last.timestamp * 1000);
-	var hours = ('0' + date.getHours()).substr(-2);
-	var minutes = ('0' + date.getMinutes()).substr(-2);
-	var seconds = ('0' + date.getSeconds()).substr(-2);
-    
-        return React.createElement('tr', {className: color},
-            React.createElement('td', null, icon),
-            React.createElement('td', null, this.props.test.name),
-            React.createElement('td', null, status),
-            React.createElement('td', null, date.getDate()+'-'+(date.getMonth()+1)+'-'+date.getFullYear()+' '+hours+':'+minutes+':'+seconds),
-            React.createElement('td', null, this.props.test.last.elapsed_time + 'ms')
-        );
-    }
+		var date = new Date(this.props.test.last.timestamp * 1000);
+		var hours = ('0' + date.getHours()).substr(-2);
+		var minutes = ('0' + date.getMinutes()).substr(-2);
+		var seconds = ('0' + date.getSeconds()).substr(-2);
+
+		return React.createElement('tr', {className: color},
+			React.createElement('td', null, icon),
+			React.createElement('td', null, this.props.test.name),
+			React.createElement('td', null, status),
+			React.createElement('td', null, date.getDate()+'-'+(date.getMonth()+1)+'-'+date.getFullYear()+' '+hours+':'+minutes+':'+seconds),
+			React.createElement('td', null, this.props.test.last.elapsed_time + 'ms')
+		);
+	}
 }
 
 ReactDOM.render(React.createElement(Container, null), document.getElementById("page"));

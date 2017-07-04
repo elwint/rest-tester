@@ -40,7 +40,7 @@ input[type="submit"], button {
 	border: none;
 }
 input[type="submit"]:hover, button:hover {
-    background-color: #00e6cf;
+	background-color: #00e6cf;
 }
 
 .right {
@@ -70,7 +70,7 @@ input[type="submit"]:hover, button:hover {
 }
 
 button {
-    margin: 10px;
+	margin: 10px;
 }
 
 #tests {
@@ -83,30 +83,30 @@ button {
 }
 
 table {
-    table-layout: fixed;
-    width: 100%;
-    border-collapse: collapse;
-    line-height: 36px;
-    color: white;
+	table-layout: fixed;
+	width: 100%;
+	border-collapse: collapse;
+	line-height: 36px;
+	color: white;
 }
 
 td {
-    padding: 0 10px;
-    border-bottom-style: solid;
-    border-bottom-width: 1px;
+	padding: 0 10px;
+	border-bottom-style: solid;
+	border-bottom-width: 1px;
 }
 
 .passed {
-    background-color: #00897B;
+	background-color: #00897B;
 }
 .passed:hover {
-    background-color: #00e6cf;
+	background-color: #00e6cf;
 }
 .failed {
-    background-color: #ef5350;
+	background-color: #ef5350;
 }
 .failed:hover {
-    background-color: #f48c8a;
+	background-color: #f48c8a;
 }
 
 error {
