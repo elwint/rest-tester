@@ -1,15 +1,20 @@
 'use strict';
 
-let token = 'wLK0oHxzFFsuy2Rm0sRk9sI1YQb4WZZtupQEJRQBlryF5PwujJ1aH32X922JDlpP3zfjemwuB73zRIH6wLu4g0kpyzrYZWbTlPPM';
+let token = '';
 
 class Container extends React.Component {
-    handleSubmit() {
-	this.forceUpdate();
+    constructor(props) {
+	super(props);
+        this.state = { token: {}};
+    }
+
+    setToken(token) {
+        this.setState({token: token});
     }
 
     render() {
-        if(!token) {
-            return React.createElement(Login, null);
+        if(Object.keys(this.state.token).length === 0 && this.state.token.constructor === Object) {
+            return React.createElement(Login, {setToken: this.setToken.bind(this)});
         } else {
             return React.createElement(TestTable, null);
         }
@@ -77,8 +82,7 @@ class Login extends React.Component {
 		}).then((body) => {
 			this.setError();
 			token = body;
-            console.log(token);
-            this.setState(this.state);
+			this.props.setToken(token);
 		}).catch((err) => {
 			let msg = err.message;
 			if (err instanceof TypeError) {
@@ -123,6 +127,7 @@ class TestTable extends React.Component {
         }).then((response) => {
             return response.json();
         }).then((tests) => {
+	    console.log(tests);
 	    this.setState({ tests });
 	});
     }
@@ -130,9 +135,9 @@ class TestTable extends React.Component {
     render() {
         var rows = [];
 
-        this.state.tests.forEach(function(test) {
-            rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
-        });
+	this.state.tests.forEach(function(test) {
+	    rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
+	});
         
         return React.createElement('table', null,
             React.createElement('thead', null,
