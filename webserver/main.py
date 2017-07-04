@@ -19,7 +19,7 @@ app.config['PROPAGATE_EXCEPTIONS']=True
 def set_header(response):
 	response.headers["Content-Type"] = "application/json"
 	response.headers["Access-Control-Allow-Origin"] = "*"
-	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PATCH, DELETE"
+	response.headers["Access-Control-Allow-Method"] = "OPTIONS, GET, POST, PUT, DELETE"
 	response.headers["Access-Control-Allow-Headers"] = "Token, Content-Type"
 	return response
 
@@ -128,7 +128,7 @@ def add_test():
 	session.add(test)
 	return json.dumps({"id": test_id}), 201
 
-@app.route("/tests/<int:test_id>", methods=['PATCH'])
+@app.route("/tests/<int:test_id>", methods=['PUT'])
 def update_test(test_id):
 	input_data = request.get_json()
 	if 'autorun' in input_data and input_data['autorun'] not in ["never", "every_day", "every_week", "every_month"]:
@@ -170,7 +170,7 @@ def get_test_history_by_id(test_id):
 
 	out = []
 	for h in history:
-		out.append({"version": h.data['version'], "status": h.data['status'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
+		out.append({"version": h.data['version'], "ok": h.data['ok'], "status": h.data['status'], "elapsed_time": h.data['elapsed_time'], "timestamp": h.data['timestamp']})
 	return json.dumps(out)
 
 def check_test_access(test_id, owner_only=False):
@@ -190,6 +190,7 @@ def run_test(test_id):
 	# Run test
 	timestamp = int(time.time())
 	time.sleep(random.choice([0.1, 0.2, 0.3, 0.4, 0.5]))
+	ok = random.choice([True, False])
 	status = random.choice([200, 500, 404, 403])
 	elapsed_time = random.choice([20, 213, 399, 443])
 
@@ -202,6 +203,7 @@ def run_test(test_id):
 				"user_id": g.user_id,
 				"name": test['name'],
 				"last": {
+					"ok": ok,
 					"status": status,
 					"elapsed_time": elapsed_time,
 					"timestamp": timestamp
@@ -217,11 +219,12 @@ def run_test(test_id):
 	h = model.History(data={
 		"test_id": test_id,
 		"version": current_test['version'],
+		"ok": ok,
 		"status": status,
 		"elapsed_time": elapsed_time,
 		"timestamp": timestamp
 	})
 	session.add(h)
-	return json.dumps({"version": current_test['version'], "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
+	return json.dumps({"version": current_test['version'], "ok": ok, "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
 
 app.run()
