@@ -113,10 +113,9 @@ class Login extends React.Component {
 class TestTable extends React.Component {
     constructor(props) {
         super(props);
-	this.handleNewTest = this.handleNewTest.bind(this);
 
     	this.state = {
-            'tests': []
+            tests: []
 	};
 
         fetch('http://localhost:5000/tests/mine', {
@@ -131,11 +130,6 @@ class TestTable extends React.Component {
 	    console.log(tests);
 	    this.setState({ tests });
 	});
-    }
-
-    handleNewTest(event) {
-	event.preventDefault();
-	this.setState({newTest: true});
     }
 
     render() {
@@ -155,24 +149,10 @@ class TestTable extends React.Component {
 	    React.createElement('h1', null, 'Test API tests'),
 	    React.createElement('h2', null, 'Status'),
 	    React.createElement('p', null, failed+'/'+count+' tests failed'),
-	    React.createElement('button', {style: {float: 'right'}, onClick: this.handleNewTest}, 
-		React.createElement('i', {className: 'fa fa-plus fa-fw', 'aria-hidden': 'true'}),
-		React.createElement(NewTest, {open: newTest})
-	    ),
 	    React.createElement('table', null,
 	        React.createElement('tbody', null, rows)
 	    )
 	);
-    }
-}
-
-class NewTest extends React.Component {
-    render() {
-	if(this.props.open == true) {
-	    return React.createElement('div', null, 
-		React.createElement('input', {type: 'text', name: 'name', placeholder: 'Name'})
-	    );
-	}
     }
 }
 
