@@ -81,7 +81,7 @@ class Login extends React.Component {
 			}
 		}).then((body) => {
 			this.setError();
-			token = body;
+			token = body.token;
 			this.props.setToken(token);
 		}).catch((err) => {
 			let msg = err.message;
