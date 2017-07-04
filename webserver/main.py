@@ -6,14 +6,17 @@ import json, string, random, time
 
 from db import session
 import model
-if not session.autocommit or session.query(model.Test).count() == 0:
-	import data
+if session.query(model.Test).count() == 0:
+	import example_data
 import crypt
 
 app = Flask("rest-tester")
 app.config['PROPAGATE_EXCEPTIONS']=True
 
-# autorun_tests = session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
+TOKEN_CHARS = string.ascii_lowercase + string.ascii_uppercase + string.digits
+AUTORUN_OPTIONS = ["never", "every_day", "every_week", "every_month"]
+DATA_TYPES = {"json": "jsonpath_mini"}
+DATA_COMPARATORS = {"equals": "str_eq", "exists": "exists"}
 
 @app.after_request
 def set_header(response):
@@ -55,9 +58,6 @@ def unauthorized(error):
 @app.errorhandler(400)
 def bad_request(error):
 	return '"Bad request"', 400
-
-
-TOKEN_CHARS = string.ascii_lowercase + string.ascii_uppercase + string.digits
 
 @app.route("/login", methods=['POST'])
 def login():
@@ -106,7 +106,7 @@ def add_test():
 	input_data = request.get_json()
 	if 'name' not in input_data or 'autorun' not in input_data or 'data' not in input_data:
 		abort(400)
-	if input_data['autorun'] not in ["never", "every_day", "every_week", "every_month"]:
+	if input_data['autorun'] not in AUTORUN_OPTIONS or not validate_test_data(input_data['data']):
 		abort(400)
 
 	last_test = session.query(model.Test).order_by(model.Test.data["id"].astext.desc()).first()
@@ -131,7 +131,9 @@ def add_test():
 @app.route("/tests/<int:test_id>", methods=['PUT'])
 def update_test(test_id):
 	input_data = request.get_json()
-	if 'autorun' in input_data and input_data['autorun'] not in ["never", "every_day", "every_week", "every_month"]:
+	if 'autorun' in input_data and input_data['autorun'] not in AUTORUN_OPTIONS:
+		abort(400)
+	if 'data' in input_data and not validate_test_data(input_data['data']):
 		abort(400)
 
 	test = check_test_access(test_id, True)
@@ -226,5 +228,60 @@ def run_test(test_id):
 	})
 	session.add(h)
 	return json.dumps({"version": current_test['version'], "ok": ok, "status": status, "elapsed_time": elapsed_time, "timestamp": timestamp}), 201
+
+def autorun_tests(): # TODO
+	tests = session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
+
+def validate_test_data(test_data):
+	if 'method' not in test_data or 'url' not in test_data or 'status' not in test_data:
+		return False
+	if test_data["method"] != "GET" and 'body' not in test_data:
+		return False
+	if 'extract' in test_data:
+		for extract in test_data["extract"]:
+			if 'type' not in extract or 'key' not in extract or 'variable' not in extract:
+				return False
+			if extract['type'] not in DATA_TYPES:
+				return False
+	if 'checks' in test_data:
+		for check in test_data["checks"]:
+			if 'type' not in check or 'key' not in check or 'compare' not in check:
+				return False
+			if check['type'] not in DATA_TYPES:
+				return False
+			if check['compare'] not in DATA_COMPARATORS:
+				return False
+			if check['compare'] != "exists" and 'value' not in check:
+				return False
+	return True
+
+def parse_to_yaml(tests_data):
+	yaml = ""
+	bind_vars = []
+	for test_data in tests_data:
+		yaml += "- test\n" \
+				"	- url: " + test_data["url"] + "\n" \
+				"	- method: '" + test_data["method"] + "'\n"
+		if "body" in test_data:
+			yaml += "	- body: '" + test_data["body"] + "'\n" + \
+					"	- headers: : {Content-Type: application/json}\n"
+		yaml += "	- expected_status: [" + test_data["status"] + "]\n"
+		if "extract" in test_data and test_data["extract"]:
+			yaml += "	- extract_binds:\n"
+			for extract in test_data["extract"]:
+				yaml += "		- '" + extract["variable"] + "': {" + DATA_TYPES[extract["type"]] + ": '" + extract["key"] + "'}\n"
+				bind_vars.append(extract["variable"])
+		if "checks" in test_data and test_data["checks"]:
+			yaml += "	- validators:\n"
+			for check in test_data["checks"]:
+				if check["compare"] == "exists":
+					yaml += "		- extract_test: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', test: 'exists'}\n"
+				else:
+					if check["value"] in bind_vars:
+						expected = "{template: '$" + check["value"] + "'}"
+					else:
+						expected = "'" + check["value"] + "'"
+					yaml += "		- compare: {" + DATA_TYPES[check["type"]] + ": '" + check["key"] + "', comparator: '" + DATA_COMPARATORS[check["compare"]] + "', expected: " + expected + "}\n"
+	return yaml
 
 app.run()

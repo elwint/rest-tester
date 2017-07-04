@@ -20,7 +20,31 @@ session.add(model.Test(data={
 	"shared_with": [],
 	"autorun": "never",
 	"group": None,
-	"data": {}
+	"data": {
+		"method": "GET",
+		"url": "http://example.com/tests/1",
+		"status": "200",
+		"checks": [
+			{
+				"type": "json",
+				"key": "id",
+				"compare": "equals",
+				"value": "1"
+			},
+			{
+				"type": "json",
+				"key": "title",
+				"compare": "exists"
+			}
+		],
+		"extract": [
+			{
+				"type": "json",
+				"key": "id",
+				"variable": "first_test_id"
+			}
+		]
+	}
 }))
 session.add(model.Test(data={
 	"id": 2,
@@ -31,7 +55,26 @@ session.add(model.Test(data={
 	"shared_with": [1],
 	"autorun": "every_day",
 	"group": None,
-	"data": {}
+	"data": {
+		"method": "POST",
+		"url": "http://example.com/tests/",
+		"status": "201",
+		"body": "{\"test\": \"test\"}",
+		"checks": [
+			{
+				"type": "json",
+				"key": "name",
+				"compare": "equals",
+				"value": "name"
+			},
+			{
+				"type": "json",
+				"key": "id",
+				"compare": "equals",
+				"value": "first_test_id"
+			}
+		]
+	}
 }))
 session.add(model.History(data={
 	"test_id": 1,
