@@ -1,9 +1,12 @@
 'use strict';
 
-let token = '8QvjVlco79P7qqvzXkNVoNjGOKbEcPIKbfhzXFnuh9kFUyX5cOyaM4f06EdcPGNnCbi3nfyRzKFXb2FdEk64oCTEI6nDpXIDiJa9';
-let tests = [];
+let token = 'wLK0oHxzFFsuy2Rm0sRk9sI1YQb4WZZtupQEJRQBlryF5PwujJ1aH32X922JDlpP3zfjemwuB73zRIH6wLu4g0kpyzrYZWbTlPPM';
 
 class Container extends React.Component {
+    handleSubmit() {
+	this.forceUpdate();
+    }
+
     render() {
         if(!token) {
             return React.createElement(Login, null);
@@ -106,9 +109,11 @@ class Login extends React.Component {
 class TestTable extends React.Component {
     constructor(props) {
         super(props);
-    }
-    
-    componentDidMount() {
+
+    	this.state = {
+            tests: []
+	};
+
         fetch('http://localhost:5000/tests/mine', {
 	    method: 'GET',
             headers: {
@@ -117,18 +122,15 @@ class TestTable extends React.Component {
             }
         }).then((response) => {
             return response.json();
-        }).then((body) => {
-	    tests = body;
-	    console.log(tests);
-            this.forceUpdate();
+        }).then((tests) => {
+	    this.setState({ tests });
 	});
     }
-
 
     render() {
         var rows = [];
 
-        tests.forEach(function(test) {
+        this.state.tests.forEach(function(test) {
             rows.push(React.createElement(TestRow, {key: test.id.toString(), test: test}));
         });
         
