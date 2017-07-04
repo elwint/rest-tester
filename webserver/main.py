@@ -78,7 +78,7 @@ def login():
 	token = ''.join(random.SystemRandom().choice(TOKEN_CHARS) for _ in range(100))
 	session.add(model.Token(user_id=user.id, token=token))
 
-	return json.dumps(token)
+	return json.dumps({'token': token})
 
 @app.route("/users/<int:user_id>", methods=['GET'])
 def get_user_by_id(user_id):
