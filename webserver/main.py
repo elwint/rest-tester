@@ -184,20 +184,22 @@ def run_test(test_id):
 	timestamp = int(time.time())
 	yaml = parse_to_yaml([current_test['data']])
 	filename = str(test_id) + ".yaml"
+	a = datetime.datetime.now()
 	output = execute_yaml_test(filename, yaml)
+	b = datetime.datetime.now()
 
 	elapsed_time = int((b-a).total_seconds() * 1000)
 	if "FAILED" in output[-1]:
 		ok = False
 		status = -1
 		for line in output:
-			if "HTTP Status Code:" in line: # TODO: Fix status
-				if line[-4] != "None":
-					status = int(line[-3])
+			if "HTTP Status Code:" in line:
+				if line[-4:] != "None":
+					status = int(line[-3:])
 				break
 	elif "SUCCEEDED" in output[-1]:
 		ok = True
-		status = current_test['data']['status']
+		status = int(current_test['data']['status'])
 	else: # Unknown error
 		ok = False
 		status = -1
@@ -250,16 +252,37 @@ def run_test_group(test_id):
 
 	# Run tests
 	timestamp = int(time.time())
-	yaml = parse_to_yaml([current_test['data'] for current_test in current_tests ])
+	yaml = parse_to_yaml([current_test['data'] for current_test in current_tests])
 	filename = str(test_id) + ".yaml"
+	a = datetime.datetime.now()
 	output = execute_yaml_test(filename, yaml)
+	b = datetime.datetime.now()
+
+	elapsed_time = int((b-a).total_seconds() * 1000 / len(current_tests))
+	failed_status = {}
+	unknown_error = False
+	if "FAILED" in output[-1]:
+		for line in output:
+			if "Test Failed:" in line:
+				if line[-4:] != "None":
+					failed_status[int(line[19:21])] = int(line[-3:])
+				else:
+					failed_status[int(line[19:21])] = -1
+	elif not "SUCCEEDED" in output[-1]:
+		unknown_error = True
 
 	result = []
-	for current_test in current_tests:
-		# TODO: Parse per test
-		status = random.choice([200, 500, 404, 403])
-		elapsed_time = random.choice([20, 213, 399, 443])
-		ok = random.choice([True, False])
+	for index, current_test in enumerate(current_tests):
+		if unknown_error:
+			ok = False
+			status = -1
+		else:
+			if index in failed_status:
+				ok = False
+				status = failed_status[index]
+			else:
+				ok = True
+				status = int(current_test['data']['status'])
 		test = check_test_access(current_test['id'], True)
 		if current_test['version'] == test['version']:
 			count = session.query(model.Test).filter(model.Test.data["id"].astext.cast(Integer) == current_test['id']).update(
@@ -304,8 +327,8 @@ def check_test_access(test_id, owner_only=False):
 		return test.data
 	abort(403)
 
-def autorun_tests(): # TODO
-	tests = session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
+def get_autorun_tests():
+	return session.query(model.Test).filter(not_(model.Test.data["autorun"].astext == "never")).all()
 
 def validate_test_data(test_data):
 	if 'method' not in test_data or 'url' not in test_data or 'status' not in test_data:
@@ -330,24 +353,21 @@ def validate_test_data(test_data):
 				return False
 	return True
 
-
 def execute_yaml_test(filename, yaml): # Run test
 	while os.path.isfile(filename): # Test is already running, waiting...
 		pass
 	with open(filename, "w") as file:
 		file.write(yaml)
-	a = datetime.datetime.now()
-	output = os.popen('python pyresttest "" ' + filename).read().splitlines()
-	# output = subprocess.run(['python pyresttest "" '], stdout=subprocess.PIPE)
-	b = datetime.datetime.now()
+	output = subprocess.run(['pyresttest', '""', filename], stderr=subprocess.STDOUT, stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines()
 	os.remove(filename)
 	return output
 
 def parse_to_yaml(tests_data):
 	yaml = ""
 	bind_vars = []
-	for test_data in tests_data:
+	for index, test_data in enumerate(tests_data):
 		yaml += "- test:\n" \
+				"    - name: '" + str(index) + "'\n" \
 				"    - url: '" + test_data["url"] + "'\n" \
 				"    - method: '" + test_data["method"] + "'\n"
 		if test_data["method"] != "GET" and "body" in test_data:
